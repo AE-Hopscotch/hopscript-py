@@ -1,4 +1,7 @@
 from uuid import uuid4
+import contextlib
+import io
+import json
 
 
 def generate_uuid() -> str:
@@ -78,7 +81,7 @@ def generate_block(block_id: int, name: str, parameters: list[any] = None):
     }
     if parameters:
         block['parameters'] = [Parameter.from_raw(raw).json() for raw in parameters]
-    print(block)
+    print(json.dumps(block))
     return block
 
 
@@ -98,3 +101,15 @@ class Operator:
 
 def generate_operator(block_id: int, name: str, cls: str, parameters: list[any] = None):
     return Operator(block_id, name, cls, [Parameter.from_raw(raw) for raw in parameters or []])
+
+
+def generate_ability(generation_fn: callable, name: str = None, obj = None):
+    # No nested ability support yet
+    with contextlib.redirect_stdout(io.StringIO()) as output:
+        generation_fn(obj)
+
+    blocks = json.loads('[' + output.getvalue().replace('\n{', ',{') + ']')
+    print(blocks)
+    ability = {'abilityID': generate_uuid(), 'blocks': blocks, 'createdAt': 0}
+    if name: ability['name'] = name
+    return ability

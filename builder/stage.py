@@ -1,6 +1,6 @@
 from builder.traits import *
 from builder.rules import *
-from builder.base import HSObjectRef, generate_uuid, Parameter
+from builder.base import HSObjectRef, generate_uuid, Parameter, generate_ability
 
 
 class HSRule:
@@ -8,17 +8,18 @@ class HSRule:
         self._callback = callback
         self._operator = operator
         self._id = generate_uuid()
-        self._ability = generate_uuid()
 
     def __call__(self, *args, **kwargs):
         print('called??')
 
-    def json(self, *, object_id: str) -> dict:
+    def json(self, *, object_id: str, obj: 'HSObject' = None) -> dict:
+        ability = generate_ability(self._callback, obj = obj)
         return {
             "id": self._id,
             "objectID": object_id,
-            "abilityID": self._ability,
-            "parameters": [Parameter.from_operator(self._operator)],
+            "ability": ability,
+            "abilityID": ability['abilityID'],
+            "parameters": [Parameter.from_operator(self._operator).json()],
             "ruleBlockType": 6000
         }
 
@@ -140,7 +141,7 @@ class HSObject:
         data = {'xPosition': self.x, 'yPosition': self.y, 'name': self.name, 'type': self.type,
                 'text': self.text, 'width': str(self.width), 'height': str(self.height),
                 'resizeScale': self.resize_scale, 'rules': rules, 'objectID': self._id,
-                'filename': OBJECT_FILENAMES[str(self.type)] + '.png'}
+                'filename': OBJECT_FILENAMES[str(self.type)] + '.png', 'object': self}
         return data
 
 

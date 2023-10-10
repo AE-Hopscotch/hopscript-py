@@ -15,7 +15,9 @@ def build_stage() -> dict:
     project_stage = stage
     project_json = {
         'scenes': [],
-        'objects': []
+        'objects': [],
+        'rules': [],
+        'abilities': []
     }
     for scene in [path for path in Path('scenes').iterdir() if path.is_dir()]:
         scene_name = str(scene).replace('scenes/', '')
