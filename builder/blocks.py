@@ -118,7 +118,7 @@ def bring_to_front():
     return generate_block(43, 'Bring To Front')
 
 
-def change_variable(var, value):
+def increase_variable(var, value):
     return generate_block(44, 'Change Variable', [var, value])
 
 

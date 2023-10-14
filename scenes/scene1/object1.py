@@ -28,7 +28,7 @@ class Object(HSObject):
 
         set_variable(local.letter, 0)
         with repeat(5):
-            change_variable(local.letter, 1)
+            increase_variable(local.letter, 1)
             show_popup(local.letter)
 
         with repeat_forever():

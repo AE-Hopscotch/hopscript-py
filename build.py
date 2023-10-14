@@ -1,5 +1,5 @@
 from builder import *
-from builder.base import BadObjectDataError
+from builder.util import BadObjectDataError
 from pathlib import Path
 from builder.stage import stage
 import importlib.util

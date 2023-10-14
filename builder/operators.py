@@ -1,5 +1,6 @@
 from builder.base import generate_operator
 
+
 def _random():
     return generate_operator(233, 'Random', 'operator')
 
