@@ -83,26 +83,30 @@ class ObjectVariableContainer(VariableContainer):
     def name(self): return trait_object_name(self._type, self._obj_id)
 
 
-# trait_username
-# trait_time
-# trait_year
-# trait_month
-# trait_day
-# trait_hour
-# trait_minute
-# trait_second
-# stage_trait_width
-# stage_trait_height
-# stage_trait_tilt_up
-# stage_trait_tilt_down
-# stage_trait_tilt_left
-# stage_trait_tilt_right
-# stage_trait_last_touch_x
-# stage_trait_last_touch_y
-# stage_trait_total_objects
+class UserVariableContainer(VariableContainer):
+    def __init__(self):
+        super().__init__(HSVariable.USER)
+
+    @property
+    def username(self): return trait_username()
+    @property
+    def time(self): return trait_time()
+    @property
+    def year(self): return trait_year()
+    @property
+    def month(self): return trait_month()
+    @property
+    def day(self): return trait_day()
+    @property
+    def hour(self): return trait_hour()
+    @property
+    def minute(self): return trait_minute()
+    @property
+    def second(self): return trait_second()
+
 
 original = ObjectVariableContainer(HSVariable.ORIGINAL_OBJECT)
 game = VariableContainer(HSVariable.GAME)
-user = ObjectVariableContainer(HSVariable.USER)
+user = UserVariableContainer()
 product = VariableContainer(HSVariable.PRODUCT)
 local = VariableContainer(HSVariable.LOCAL)
