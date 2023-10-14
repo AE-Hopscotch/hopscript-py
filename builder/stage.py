@@ -1,6 +1,6 @@
 from builder.traits import *
 from builder.rules import *
-from builder.base import HSObjectRef, generate_uuid, Parameter, generate_ability
+from builder.base import HSObjectRef, generate_uuid, Parameter, generate_ability, HSVariable
 
 
 class HSRule:
@@ -78,10 +78,6 @@ class HSRule:
         return lambda fn: cls(fn, event_is_not_touching(ref1, ref2))
 
 
-class HSVariable:
-    pass
-
-
 OBJECT_FILENAMES = {
     "0": "monkey", "1": "text-object", "2": "octopus", "3": "gorilla", "4": "cupcake", "5": "bear",
     "6": "dino", "7": "frog", "8": "greenman", "9": "mustache", "10": "spacepod",
@@ -122,15 +118,16 @@ class HSObject:
     name = "Text Object Ha"
     type = 1
     text = "Not text"
-    width = 75
-    height = 75
+    width = 150
+    height = 150
     resize_scale = 1
     # filename = 'text-object.png' should be inferred
     def __init__(self):
         self._id = generate_uuid()
 
     def __getattr__(self, item) -> HSVariable:
-        return HSVariable()
+        # "Other objects" variables are retrieved from their HSObjectRef, so this must be a self var
+        return HSVariable(HSVariable.SELF, item)
 
     def json_parse_rule(self, rule: HSRule) -> dict:
         return rule.json(object_id = self._id)

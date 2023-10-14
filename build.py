@@ -1,6 +1,6 @@
 from builder import *
 from pathlib import Path
-from builder.stage import stage, HSStage
+from builder.stage import stage
 import importlib.util
 
 
@@ -17,7 +17,8 @@ def build_stage() -> dict:
         'scenes': [],
         'objects': [],
         'rules': [],
-        'abilities': []
+        'abilities': [],
+        'variables': []
     }
     for scene in [path for path in Path('scenes').iterdir() if path.is_dir()]:
         scene_name = str(scene).replace('scenes/', '')

@@ -1,4 +1,33 @@
-from builder.base import generate_block
+from builder.base import generate_block, ability_manager as _ability_manager
+
+
+def _BlockClassControl(*, conditional: bool = False):
+    def generate(fn):
+        class ControlBlock:
+            def __init__(self, *params):
+                self._block = fn(*params)
+                self._exit_id = _ability_manager.current_id
+
+            def __enter__(self):
+                _ability_manager.create(activate = True)
+                ability_id = _ability_manager.active_ability['abilityID']
+                self._block['controlScript'] = {'abilityID': ability_id}
+                if conditional:
+                    # empty control false since this is only the "true" part
+                    self._block['controlFalseScript'] = {'abilityID': ""}
+                    self._block['block_class'] = 'conditionalControl'
+                else:
+                    self._block['block_class'] = 'control'
+
+            def __exit__(self, exc_type, exc_value, exc_traceback):
+                # We are not handling exceptions here; just closing the ability
+                _ability_manager.activate(self._exit_id)
+
+
+        return ControlBlock
+
+    return generate
+
 
 def wait_til_timestamp(value):
     return generate_block(19, 'Wait Til Timestamp', [value])
@@ -16,9 +45,9 @@ def rotate(degrees):
     return generate_block(24, 'Rotate', [degrees])
 
 
-# Turn this into a context manager (with leave_a_trail)
-def leave_a_trail(value):
-    return generate_block(26, 'Leave A Trail', [value])
+@_BlockClassControl(conditional = False)
+def _leave_a_trail(color, width):
+    return generate_block(26, 'Leave A Trail', [color, width])
 
 
 def change_x(amount):
@@ -209,15 +238,18 @@ def set_trail_opacity(percent):
     return generate_block(73, 'Set Trail Opacity', [percent])
 
 
-def repeat(times):
+@_BlockClassControl(conditional = False)
+def _repeat(times):
     return generate_block(120, 'Repeat', [times])
 
 
-def repeat_forever():
+@_BlockClassControl(conditional = False)
+def _repeat_forever():
     return generate_block(121, 'Repeat Forever')
 
 
-def check_once_if(condition):
+@_BlockClassControl(conditional = True)
+def _check_once_if(condition):
     return generate_block(122, 'Check Once If', [condition])
 
 
@@ -225,8 +257,29 @@ def ability(*args):
     return generate_block(123, 'Ability', [*args])
 
 
-def check_if_else(condition):
+@_BlockClassControl(conditional = True)
+def _check_if_else(condition):
     return generate_block(124, 'Check If Else', [condition])
+
+
+class ELSE:
+    def __init__(self):
+        # get the last block
+        self._block = _ability_manager.active_ability['blocks'][-1]
+        if self._block['block_class'] != 'conditionalControl' or 'controlFalseScript' not in self._block:
+            raise TypeError('ELSE must be placed directly under a conditional block')
+
+        self._exit_id = _ability_manager.current_id
+
+    def __enter__(self):
+        _ability_manager.create(activate = True)
+        ability_id = _ability_manager.active_ability['abilityID']
+        # Modify the previous block's controlFalseScript
+        self._block['controlFalseScript'] = {'abilityID': ability_id}
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        # We are not handling exceptions here; just closing the ability
+        _ability_manager.activate(self._exit_id)
 
 
 def change_scene(scene):
@@ -240,3 +293,10 @@ def broadcast_message(message):
 def request_seeds(amount, product):
     return generate_block(127, 'Request Seeds', [amount, product])
 
+
+# Duplicate so that autocomplete works
+def leave_a_trail(color, width): return _leave_a_trail(color, width)
+def check_once_if(condition): return _check_once_if(condition)
+def repeat(times): return _repeat(times)
+def check_if_else(condition): return _check_if_else(condition)
+def repeat_forever(): return _repeat_forever()
