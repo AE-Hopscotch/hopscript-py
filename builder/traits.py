@@ -1,7 +1,8 @@
 from builder.util import generate_uuid
+from builder.operators import HSDatum
 
 
-class HSTrait:
+class HSTrait(HSDatum):
     instances = []
     OBJECT = 8000
     GAME = 8003

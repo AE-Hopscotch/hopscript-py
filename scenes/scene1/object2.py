@@ -28,6 +28,7 @@ class Object(HSObject):
         with repeat_forever():
             with leave_a_trail('#f008', 40):
                 set_position(original.x_position, original.y_position)
+                set_color(Color.random())
 
     @HSRule.shake
     def lose_collision(self):

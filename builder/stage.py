@@ -2,6 +2,7 @@ from builder.rules import *
 from builder.base import HSObjectRef, generate_uuid, Parameter, generate_ability, HSVariable
 from builder.variable import ObjectVariableContainer
 from builder.traits import *
+from builder.operators import condition_is_flipped
 
 
 class HSRule:
@@ -130,6 +131,12 @@ class HSObject(ObjectVariableContainer):
     # def __getattr__(self, item) -> HSVariable:
     #     # "Other objects" variables are retrieved from their HSObjectRef, so this must be a self var
     #     return HSVariable(HSVariable.SELF, item)
+
+
+    @property
+    def flipped(self):
+        # in `Object` because there is no object reference in the flipped condition
+        return condition_is_flipped()
 
     def json_parse_rule(self, rule: HSRule) -> dict:
         return rule.json(object_id = self._id)

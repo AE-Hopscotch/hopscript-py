@@ -2,7 +2,7 @@ from builder.util import generate_uuid
 from builder.traits import *
 
 
-class HSVariable:
+class HSVariable(HSDatum):
     instances = {}
     OBJECT = 8000
     GAME = 8003

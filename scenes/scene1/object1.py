@@ -25,6 +25,8 @@ class Object(HSObject):
         show_popup(product.letter)
         show_popup(local.letter)
         show_popup(stage.object2.letter)
+        show_popup('Flipped: ' + self.flipped)
+        show_popup(join('test' + math_round(self.flipped), 'test2')[self.letter:4])
 
         set_variable(local.letter, 0)
         with repeat(5):
@@ -33,14 +35,14 @@ class Object(HSObject):
 
         with repeat_forever():
             grow(1)
-            with check_once_if(condition_greater_than(self.size, 800)):
+            with check_once_if(self.size > 800):
                 wait(10000)
 
 
     @HSRule.game_playing
     def rotate_forever(self):
         rotate(-5)
-        with check_once_if(condition_equals(self.letter, 'A')):
+        with check_if_else((self.letter == 'A') | (self.letter == 'C')):
             set_text('I can grow', 'HSB(100, 100, 100)')
         with ELSE():
             set_text('An "else" condition working??', 'HSB(0, 100, 100)')

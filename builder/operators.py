@@ -1,4 +1,156 @@
-from builder.base import generate_operator
+import abc
+
+
+class HSDatum(abc.ABC):
+    """A data-holding object in Hopscotch code"""
+    @abc.abstractmethod
+    def __init__(self):
+        raise NotImplementedError
+
+    # Conditional operators
+    def __eq__(self, other) -> 'Operator': return condition_equals(self, other)
+    def __ne__(self, other) -> 'Operator': return condition_not_equals(self, other)
+    def __lt__(self, other) -> 'Operator': return condition_less_than(self, other)
+    def __gt__(self, other) -> 'Operator': return condition_greater_than(self, other)
+    def __le__(self, other) -> 'Operator': return condition_less_than_or_equal_to(self, other)
+    def __ge__(self, other) -> 'Operator': return condition_greater_than_or_equal_to(self, other)
+
+    def __and__(self, other) -> 'Operator':
+        """Defines behavior for operand bitwise AND (i.e. Datum & 1)"""
+        return condition_and(self, other)
+    def __rand__(self, other) -> 'Operator':
+        """Defines behavior for right-hand side operand bitwise AND (i.e. 1 & Datum)"""
+        return condition_and(other, self)
+    def __or__(self, other) -> 'Operator':
+        """Defines behavior for operand bitwise OR (i.e. Datum & 1)"""
+        return condition_or(self, other)
+    def __ror__(self, other) -> 'Operator':
+        """Defines behavior for right-hand side operand bitwise OR (i.e. 1 & Datum)"""
+        return condition_or(other, self)
+
+    # All math operators except square root, sine, cosine, tangent, inverse trig, comparisons
+    def __add__(self, other) -> 'Operator': return math_add(self, other)
+    def __radd__(self, other) -> 'Operator': return math_add(other, self)
+    def __sub__(self, other) -> 'Operator': return math_subtract(self, other)
+    def __rsub__(self, other) -> 'Operator': return math_subtract(other, self)
+    def __mul__(self, other) -> 'Operator': return math_multiply(self, other)
+    def __rmul__(self, other) -> 'Operator': return math_multiply(other, self)
+    def __truediv__(self, other) -> 'Operator': return math_divide(self, other)
+    def __rtruediv__(self, other) -> 'Operator': return math_divide(other, self)
+    def __pow__(self, power, modulo = None) -> 'Operator': return math_power(self, power)
+    def __rpow__(self, other) -> 'Operator': return math_power(other, self)
+    def __round__(self, n = None) -> 'Operator': return math_round(self)
+    def __floor__(self) -> 'Operator': return math_floor(self)
+    def __ceil__(self) -> 'Operator': return math_ceiling(self)
+    def __abs__(self) -> 'Operator': return math_abs(self)
+    def __mod__(self, other) -> 'Operator': return math_modulo(self, other)
+    def __rmod__(self, other) -> 'Operator': return math_modulo(other, self)
+
+    # Text operators
+    def __getitem__(self, item):
+        if type(item) == slice:
+            if item.step is not None: raise ValueError('Cannot specify step in Hopscotch')
+            return chars_in_range(self, item.start, item.stop)
+
+        return char_at_index(self, item)
+
+    @abc.abstractmethod
+    def json(self):
+        raise NotImplementedError
+
+
+
+class Parameter:
+    # 57 = Multipurpose Number Default
+    def __init__(self, value: str = '', ptype: int = 57, *, default: str = '',
+                 key: str = '', datum = None):
+        if type(value) != str: raise BadParameterDataError('Invalid Parameter Value')
+        if type(ptype) != int: raise BadParameterDataError('Invalid Parameter Type')
+        if type(default) != str: raise BadParameterDataError('Invalid Default Value')
+        if type(key) != str: raise BadParameterDataError('Invalid Parameter Key')
+
+        self._default = default
+        self._value = value
+        self._key = key
+        self._type = ptype
+        self._datum = datum
+
+    @classmethod
+    def from_raw(cls, data):
+        """Creates a parameter given some data"""
+        if type(data) == Parameter:
+            return data
+
+        if type(data) in (int, str, float):
+            return Parameter.from_primitive(data)
+
+        if type(data).__name__ in ('Operator', 'HSVariable', 'HSTrait'):
+            return Parameter.from_operator(data)
+
+        if type(data).__name__ == 'HSObjectRef':
+            return Parameter.from_primitive('test')
+
+        raise BadParameterDataError('Invalid Parameter Data')
+
+    @classmethod
+    def from_primitive(cls, value: int | float | str):
+        return cls(str(value))
+
+    @classmethod
+    def from_operator(cls, operator):
+        return cls(datum = operator)
+
+    def json(self):
+        """Converts the parameter to a JSON value"""
+        content = {
+            "defaultValue": self._default,
+            "value": self._value,
+            "key": self._key,
+            "type": self._type
+        }
+        if self._datum: content['datum'] = self._datum.json()
+        return content
+
+
+class Operator(HSDatum):
+    def __init__(self, block_id: int, name: str, cls: str = 'operator',
+                 params: list[Parameter] | None = None):
+        self._cls = cls
+        self._params = params
+        self._desc = name
+        self._type = block_id
+
+    def json(self):
+        operator = {"block_class": self._cls, "type": self._type, "description": self._desc}
+        if self._params: operator['params'] = [p.json() for p in self._params]
+        return operator
+
+
+class Color(Operator):
+    def __init__(self):
+        super().__init__(0, 'color')
+        raise TypeError('Must call a specific color operator')
+
+    @classmethod
+    def random(cls) -> Operator:
+        return color_operator_random()
+
+    @classmethod
+    def HSB(cls, hue, saturation, brightness) -> Operator:
+        return color_operator_hsb(hue, saturation, brightness)
+
+
+def generate_operator(block_id: int, name: str, cls: str, parameters: list[any] = None):
+    return Operator(block_id, name, cls, [Parameter.from_raw(raw) for raw in parameters or []])
+
+
+class BadParameterDataError(ValueError):
+    pass
+
+
+# Since our magic functions take care of floor and ceil, hoist them to global scope
+# This will make it consistent with other HS operators
+from math import floor, ceil
 
 
 def _random():
@@ -62,11 +214,12 @@ def condition_less_than_or_equal_to(val1, val2):
     return generate_operator(1007, '<=', 'conditionalOperator', [val1, val2])
 
 
-def condition_matches(text, expression):
+# Renamed operators will be made directly accessible
+def matches(text, expression):
     return generate_operator(1008, 'matches', 'conditionalOperator', [text, expression])
 
 
-def condition_not(condition):
+def NOT(condition):
     return generate_operator(1009, 'not', 'conditionalOperator', [condition])
 
 
@@ -99,15 +252,15 @@ def math_power(val1, val2):
     return generate_operator(4005, 'Math Operator Power', 'operator', [val1, val2])
 
 
-def math_square_root(value):
+def square_root(value):
     return generate_operator(4006, 'Math Operator Square Root', 'operator', [value])
 
 
-def math_sine(value):
+def sin(value):
     return generate_operator(4007, 'Math Operator Sine', 'operator', [value])
 
 
-def math_cosine(value):
+def cos(value):
     return generate_operator(4008, 'Math Operator Cosine', 'operator', [value])
 
 
@@ -123,27 +276,27 @@ def math_modulo(val1, val2):
     return generate_operator(4011, 'Math Operator Modulo', 'operator', [val1, val2])
 
 
-def math_tangent(value):
+def tan(value):
     return generate_operator(4012, 'Math Operator Tangent', 'operator', [value])
 
 
-def math_inverse_sine(value):
+def asin(value):
     return generate_operator(4013, 'Math Operator Inverse Sine', 'operator', [value])
 
 
-def math_inverse_cosine(value):
+def acos(value):
     return generate_operator(4014, 'Math Operator Inverse Cosine', 'operator', [value])
 
 
-def math_inverse_tangent(value):
+def atan(value):
     return generate_operator(4015, 'Math Operator Inverse Tangent', 'operator', [value])
 
 
-def math_maximum(val1, val2):
+def maximum(val1, val2):
     return generate_operator(4016, 'Math Operator Maximum', 'operator', [val1, val2])
 
 
-def math_minimum(val1, val2):
+def minimum(val1, val2):
     return generate_operator(4017, 'Math Operator Minimum', 'operator', [val1, val2])
 
 
@@ -151,87 +304,48 @@ def math_floor(value):
     return generate_operator(4018, 'Math Operator Floor', 'operator', [value])
 
 
-def math_ceiling(value):
+def math_ceil(value):
     return generate_operator(4019, 'Math Operator Ceiling', 'operator', [value])
 
 
 # Color Operators
-def color_operator_random(value):
-    return generate_operator(5000, 'Color Operator Random', 'operator', [value])
+def color_operator_random():
+    return generate_operator(5000, 'Color Operator Random', 'operator')
 
 
-def color_operator_rgb(value):
-    return generate_operator(5001, 'Color Operator RGB', 'operator', [value])
+def color_operator_rgb(red, green, blue):
+    return generate_operator(5001, 'Color Operator RGB', 'operator', [red, green, blue])
 
 
-def color_operator_hsb(value):
-    return generate_operator(5002, 'Color Operator HSB', 'operator', [value])
+def color_operator_hsb(hue, sat, brightness):
+    return generate_operator(5002, 'Color Operator HSB', 'operator', [hue, sat, brightness])
 
 
-def hs_object(value):
-    return generate_operator(8000, 'Object', 'operator', [value])
+def char_at_index(text, index):
+    return generate_operator(9000, 'Text Operator Char At Index', 'operator', [text, index])
 
 
-def any_object(value):
-    return generate_operator(8001, 'Any Object', 'operator', [value])
+def chars_in_range(text, start, end):
+    return generate_operator(9001, 'Text Operator Chars In Range', 'operator', [text, start, end])
 
 
-def screen_edge(value):
-    return generate_operator(8002, 'Screen Edge', 'operator', [value])
+def length(text):
+    return generate_operator(9002, 'Text Operator Length', 'operator', [text])
 
 
-def game(value):
-    return generate_operator(8003, 'Game', 'operator', [value])
+def join(text1, text2):
+    return generate_operator(9003, 'Text Operator Join', 'operator', [text1, text2])
 
 
-def self(value):
-    return generate_operator(8004, 'Self', 'operator', [value])
+def scene_reference_block():
+    return generate_operator(10000, 'Scene Reference Block', 'operator')
 
 
-def original_object(value):
-    return generate_operator(8005, 'Original Object', 'operator', [value])
+def previous_scene_parameter():
+    return generate_operator(10001, 'Previous Scene', 'operator')
 
 
-def local(value):
-    return generate_operator(8006, 'Local', 'operator', [value])
+def next_scene_parameter():
+    return generate_operator(10002, 'Next Scene', 'operator')
 
-
-def user(value):
-    return generate_operator(8007, 'User', 'operator', [value])
-
-
-def product(value):
-    return generate_operator(8008, 'Product', 'operator', [value])
-
-
-def scoped(value):
-    return generate_operator(8009, 'Scoped', 'operator', [value])
-
-
-def text_operator_char_at_index(value):
-    return generate_operator(9000, 'Text Operator Char At Index', 'operator', [value])
-
-
-def text_operator_chars_in_range(value):
-    return generate_operator(9001, 'Text Operator Chars In Range', 'operator', [value])
-
-
-def text_operator_length(value):
-    return generate_operator(9002, 'Text Operator Length', 'operator', [value])
-
-
-def text_operator_join(value):
-    return generate_operator(9003, 'Text Operator Join', 'operator', [value])
-
-
-def scene_reference_block(value):
-    return generate_operator(10000, 'Scene Reference Block', 'operator', [value])
-
-
-def previous_scene_parameter(value):
-    return generate_operator(10001, 'Previous Scene Parameter', 'operator', [value])
-
-
-def next_scene_parameter(value):
-    return generate_operator(10002, 'Next Scene Parameter', 'operator', [value])
 
