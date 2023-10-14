@@ -1,6 +1,7 @@
-from builder.traits import *
 from builder.rules import *
 from builder.base import HSObjectRef, generate_uuid, Parameter, generate_ability, HSVariable
+from builder.variable import ObjectVariableContainer
+from builder.traits import *
 
 
 class HSRule:
@@ -54,7 +55,7 @@ class HSRule:
     @classmethod
     def swipe_down(cls, ref): return lambda fn: cls(fn, event_swipe_down(ref))
     @classmethod
-    def enter_the_world(cls, fn): return cls(fn, event_enter_the_world())
+    def object_cloned(cls, fn): return cls(fn, event_enter_the_world())
     @classmethod
     def tilt_right_editor(cls, fn): return cls(fn, event_tilt_right_editor())
     @classmethod
@@ -112,7 +113,7 @@ OBJECT_FILENAMES = {
 }
 
 
-class HSObject:
+class HSObject(ObjectVariableContainer):
     x = 512
     y = 384
     name = "Text Object Ha"
@@ -124,10 +125,11 @@ class HSObject:
     # filename = 'text-object.png' should be inferred
     def __init__(self):
         self._id = generate_uuid()
+        super().__init__(HSVariable.SELF)
 
-    def __getattr__(self, item) -> HSVariable:
-        # "Other objects" variables are retrieved from their HSObjectRef, so this must be a self var
-        return HSVariable(HSVariable.SELF, item)
+    # def __getattr__(self, item) -> HSVariable:
+    #     # "Other objects" variables are retrieved from their HSObjectRef, so this must be a self var
+    #     return HSVariable(HSVariable.SELF, item)
 
     def json_parse_rule(self, rule: HSRule) -> dict:
         return rule.json(object_id = self._id)

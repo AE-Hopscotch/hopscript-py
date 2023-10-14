@@ -33,12 +33,14 @@ class Object(HSObject):
 
         with repeat_forever():
             grow(1)
+            with check_once_if(condition_greater_than(self.size, 800)):
+                wait(10000)
 
 
     @HSRule.game_playing
     def rotate_forever(self):
         rotate(-5)
-        with check_once_if(self.letter):
+        with check_once_if(condition_equals(self.letter, 'A')):
             set_text('I can grow', 'HSB(100, 100, 100)')
         with ELSE():
             set_text('An "else" condition working??', 'HSB(0, 100, 100)')

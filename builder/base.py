@@ -1,5 +1,5 @@
 from builder.util import generate_uuid
-from builder.variable import HSVariable
+from builder.variable import HSVariable, ObjectVariableContainer, HSTrait
 
 
 class HSAbilityManager:
@@ -35,21 +35,33 @@ class HSAbilityManager:
 ability_manager = HSAbilityManager()
 
 
-
-class HSObjectRef:
+class HSObjectRef(ObjectVariableContainer):
     def __init__(self, objs, item):
         self._stage = objs
         self._item = item
+        super().__init__(HSVariable.OBJECT)
+
+    @property
+    def _obj_id(self) -> str:
+        return self.resolve().json()['objectID']
 
     def __getattr__(self, item) -> HSVariable:
-        return HSVariable(HSVariable.OBJECT, item, object_id = self.resolve().json()['objectID'])
+        return HSVariable(HSVariable.OBJECT, item, object_id = self._obj_id)
 
     def resolve(self):
         """Returns the HSObject that this object is referring to"""
-        return self._stage[self._item]
+        obj = self._stage.get(self._item)
+        if not obj:
+            raise ReferenceError(f"No object was defined in '{self._item}.py'")
+
+        return obj
 
 
 class BadParameterDataError(ValueError):
+    pass
+
+
+class BadObjectDataError(ValueError):
     pass
 
 
@@ -77,7 +89,7 @@ class Parameter:
         if type(data) == int or type(data) == float or type(data) == str:
             return Parameter.from_primitive(data)
 
-        if type(data) == Operator or type(data) == HSVariable:
+        if type(data) in (Operator, HSVariable, HSTrait):
             return Parameter.from_operator(data)
 
         if type(data) == HSObjectRef:

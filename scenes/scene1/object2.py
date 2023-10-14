@@ -1,5 +1,6 @@
 from builder import *
 
+
 class Object(HSObject):
     type = 2
     x = 200
@@ -14,8 +15,19 @@ class Object(HSObject):
             move_forward(200)
         # set_variable(self.letter, 'A')
 
+        create_a_clone()
+
+        with repeat_forever():
+            set_position(stage.last_touch_x, stage.last_touch_y)
+
     # @HSRule.custom_rule('Name', 1, 2, 3)
     # def custom_rule(self): pass
+
+    @HSRule.object_cloned
+    def clone_rule(self):
+        with repeat_forever():
+            with leave_a_trail('#f008', 40):
+                set_position(original.x_position, original.y_position)
 
     @HSRule.shake
     def lose_collision(self):

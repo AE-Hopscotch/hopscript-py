@@ -154,7 +154,7 @@ def play_sound(sound, wait_ms):
     return generate_block(52, 'Play Sound', [sound, wait_ms])
 
 
-def make_a_clone(times):
+def create_a_clone(times = 1):
     return generate_block(53, 'Make A Clone', [times])
 
 

@@ -1,13 +1,12 @@
 from builder.base import generate_operator
 
 
-# Rule
-def rule(value):
+# Leave in as hidden for now
+def _rule(value):
     return generate_operator(6000, 'Rule', 'operator', [value])
 
 
-# idk what to do yet
-def rule_preview(value):
+def _rule_preview(value):
     return generate_operator(6001, 'Rule Preview', 'operator', [value])
 
 
