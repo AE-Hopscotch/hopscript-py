@@ -21,7 +21,7 @@ class HSTrait(HSDatum):
             raise ValueError('Cannot have object associated with stage or user trait')
         elif trait_type < 2500:
             # Must have object type, object_id presence must match "object_type is object-ref"
-            if not object_type or (object_type == 8000 != object_id is not None):
+            if not object_type or (object_type == 8000) != (object_id is not None):
                 raise ValueError('Object type missing from object trait')
 
         self._json = {'HSTraitIDKey': self._id, 'HSTraitTypeKey': trait_type, 'description': name}

@@ -8,6 +8,14 @@ from builder.base import HSVariable, ability_manager
 from pathlib import Path
 
 
+def patch_json_encoder():
+    def _default(_, obj):
+        return getattr(obj.__class__, "json", _default.default)(obj)
+
+    _default.default = json.JSONEncoder().default
+    json.JSONEncoder.default = _default
+
+
 if __name__ == "__main__":
     # move_forward(500)
     # change_x(200)
@@ -41,9 +49,12 @@ if __name__ == "__main__":
     # obj1 = stage.object1.resolve()
     o1 = stage.get_objects()[0]
     print(o1.json())
+    print(intermediate_json)
     # print('Rules', [value for key, value in obj1.__dict__.items() if not key.startswith('__')])
 
-    Path('output.json').write_text(json.dumps(intermediate_json))
+    patch_json_encoder()
+    json_string = json.dumps(intermediate_json)
+    Path('output.json').write_text(json_string)
     print('Project written to output.json')
 
-    show_web_view(intermediate_json)
+    show_web_view(json_string)

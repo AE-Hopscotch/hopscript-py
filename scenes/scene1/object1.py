@@ -52,9 +52,39 @@ class Object(HSObject):
     # @HSRule.custom_rule('Name', 1, 2, 3)
     # def custom_rule(self): pass
 
-    @HSRule.is_touching(stage.object2, stage.object2)
+    @HSRule.is_touching(self, stage.object2)
     def lose_collision(self):
-        set_variable('self.game_over', 'TRUE')
+        set_variable(self.game_over, 'TRUE')
+
+    @HSRule.hear_message(stage.object2.letter + 1)
+    def game_over_text(self):
+        set_text(stage.object2.width, '#0f0')
+        set_text('GAME OVER', '#f00')
+
+    @HSRule.hear_message(self.letter + stage.object2.width)
+    def game_over_text_1(self):
+        set_text(stage.object2.width, '#0f0')
+        set_text('GAME OVER TEXT 1', '#f00')
+
+    @HSRule.hear_message(stage.object2.letter)
+    def game_over_text_2(self):
+        set_text(stage.object2.width, '#0f0')
+        set_text('GAME OVER', '#f00')
+
+    @HSRule.equals(self.width + stage.object2.variable, stage.tilt_left - user.coolness)
+    def game_over_text_3(self):
+        set_text(stage.object2.width, '#0f0')
+        set_text('GAME OVER TEXT 3', '#f00')
+
+    @HSRule.flipped
+    def game_over_text_4(self):
+        set_text(stage.object2.width, '#0f0')
+        set_text('GAME OVER TEXT 3', '#f00')
+
+    @HSRule.equals(self.flipped, 1)
+    def game_over_text_5(self):
+        set_text(stage.object2.width, '#0f0')
+        set_text('GAME OVER TEXT 3', '#f00')
 
 
 

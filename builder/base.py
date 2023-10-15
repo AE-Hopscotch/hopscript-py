@@ -1,5 +1,7 @@
-from builder.util import generate_uuid, Parameter, Operator, generate_operator
+from builder.util import generate_uuid, Parameter, Operator, generate_operator, \
+    DatumResolvable, StringResolvable
 from builder.variable import HSVariable, ObjectVariableContainer, HSTrait
+from builder.operators import condition_is_flipped
 
 
 class HSAbilityManager:
@@ -36,25 +38,59 @@ ability_manager = HSAbilityManager()
 
 
 class HSObjectRef(ObjectVariableContainer):
-    def __init__(self, objs, item):
-        self._stage = objs
+    def __init__(self, objs, item, stage):
+        self._objects = objs
+        self._stage = stage
         self._item = item
         super().__init__(HSVariable.OBJECT)
 
     @property
-    def _obj_id(self) -> str:
-        return self.resolve().json()['objectID']
+    def _obj_id(self):
+        resolver = lambda: self.resolve().json()['objectID']
+        if self._stage.objects_loaded:
+            return resolver()
+        else:
+            return StringResolvable(self._stage, resolver)
 
-    def __getattr__(self, item) -> HSVariable:
+    def __getattr__(self, item) -> 'HSVariable | callable':
+        if self._stage.objects_loaded:
+            return self.resolve_var(item)
+        else:
+            return DatumResolvable(self._stage, self.resolve_var, item)
+
+    def resolve_var(self, item):
         return HSVariable(HSVariable.OBJECT, item, object_id = self._obj_id)
 
     def resolve(self):
         """Returns the HSObject that this object is referring to"""
-        obj = self._stage.get(self._item)
+        obj = self._objects.get(self._item)
         if not obj:
             raise ReferenceError(f"No object was defined in '{self._item}.py'")
 
         return obj
+
+
+class HSSelfObjectRef(ObjectVariableContainer):
+    def __init__(self, objs):
+        self._stage = objs
+        super().__init__(HSVariable.SELF)
+
+    def __getattr__(self, item) -> HSVariable:
+        return HSVariable(HSVariable.SELF, item)
+
+    @property
+    def flipped(self):
+        # in `Object` because there is no object reference in the flipped condition
+        return condition_is_flipped()
+
+    def resolve(self):
+        """Returns the HSObject that this object is referring to"""
+        raise NotImplementedError
+        # todo this is not complete
+        # if not obj:
+        #     raise ReferenceError(f"No object was defined in '{self._item}.py'")
+        #
+        # return obj
 
 
 def generate_block(block_id: int, name: str, parameters: list[any] = None):

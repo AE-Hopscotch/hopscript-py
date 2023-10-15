@@ -41,7 +41,8 @@ def build_stage() -> dict:
         'objects': [],
         'rules': [],
         'abilities': [],
-        'variables': []
+        'variables': [],
+        'stageSize': {'width': stage.width, 'height': stage.height}
     }
     for scene in [path for path in Path('scenes').iterdir() if path.is_dir()]:
         scene_name = str(scene).replace('scenes/', '')
@@ -58,6 +59,7 @@ def build_stage() -> dict:
 
         project_json['scenes'].append(scene_json)
 
+    project_stage.set_loaded()
     return project_json
 
 

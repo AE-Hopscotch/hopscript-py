@@ -1,8 +1,31 @@
 from builder.rules import *
-from builder.base import HSObjectRef, generate_uuid, Parameter, generate_ability, HSVariable
+from builder.base import HSObjectRef, generate_uuid, Parameter, generate_ability, \
+    HSVariable, HSSelfObjectRef
 from builder.variable import ObjectVariableContainer
 from builder.traits import *
-from builder.operators import condition_is_flipped
+from builder.operators import *
+
+
+def resolve_rule_parameter(parameter: dict) -> dict:
+    if 'datum' not in parameter: return parameter
+
+    if type(parameter['datum']) == DatumResolvable:
+        parameter['datum'] = parameter['datum'].json()
+
+    if isinstance(parameter['datum'], HSDatum):
+        parameter['datum'] = parameter['datum'].json()
+
+    if 'params' not in parameter['datum']:
+        return parameter
+
+    params = parameter['datum'].get('params', [])
+    new_params = []
+    new_params = [resolve_rule_parameter(raw) if type(raw) == dict
+                  else Parameter.from_raw(raw).json() for raw in params]
+    parameter['datum']['params'] = new_params
+
+    return parameter
+
 
 
 class HSRule:
@@ -16,12 +39,13 @@ class HSRule:
 
     def json(self, *, object_id: str, obj: 'HSObject' = None) -> dict:
         ability = generate_ability(self._callback, obj = obj)
+        operator = Parameter.from_operator(self._operator).json()
         return {
             "id": self._id,
             "objectID": object_id,
             "ability": ability,
             "abilityID": ability['abilityID'],
-            "parameters": [Parameter.from_operator(self._operator).json()],
+            "parameters": [resolve_rule_parameter(operator)],
             "ruleBlockType": 6000
         }
 
@@ -72,12 +96,43 @@ class HSRule:
     @classmethod
     def touch_ends(cls, fn): return cls(fn, event_touch_ends())
     @classmethod
-    def hear_message(cls, msg): return lambda fn: cls(fn, event_hear_message(msg))
+    def hear_message(cls, msg):
+        return lambda fn: cls(fn, DatumResolvable(stage, event_hear_message, msg))
     @classmethod
     def message_matches(cls, msg): return lambda fn: cls(fn, event_message_matches(msg))
     @classmethod
     def is_not_touching(cls, ref1, ref2):
         return lambda fn: cls(fn, event_is_not_touching(ref1, ref2))
+
+    # Conditional Rules
+    @classmethod
+    def equals(cls, val1, val2): return lambda fn: cls(fn, condition_equals(val1, val2))
+    @classmethod
+    def not_equals(cls, val1, val2):
+        return lambda fn: cls(fn, condition_not_equals(val1, val2))
+    @classmethod
+    def less_than(cls, val1, val2):
+        return lambda fn: cls(fn, condition_less_than(val1, val2))
+    @classmethod
+    def greater_than(cls, val1, val2):
+        return lambda fn: cls(fn, condition_greater_than(val1, val2))
+    @classmethod
+    def less_than_or_equal_to(cls, val1, val2):
+        return lambda fn: cls(fn, condition_less_than_or_equal_to(val1, val2))
+    @classmethod
+    def greater_than_or_equal_to(cls, val1, val2):
+        return lambda fn: cls(fn, condition_greater_than_or_equal_to(val1, val2))
+    @classmethod
+    def AND(cls, cnd1, cnd2): return lambda fn: cls(fn, condition_and(cnd1, cnd2))
+    @classmethod
+    def OR(cls, cnd1, cnd2): return lambda fn: cls(fn, condition_or(cnd1, cnd2))
+    @classmethod
+    def NOT(cls, condition): return lambda fn: cls(fn, NOT(condition))
+    @classmethod
+    def matches(cls, text, expression):
+        return lambda fn: cls(fn, matches(text, expression))
+    @classmethod
+    def flipped(cls, fn): return cls(fn, condition_is_flipped())
 
 
 OBJECT_FILENAMES = {
@@ -153,6 +208,7 @@ class HSObject(ObjectVariableContainer):
 
 class HSStage:
     _objects = None
+    objects_loaded: bool = False
     def __init__(self, *, width: int = 1024, height: int = 768):
         self._width = width
         self._height = height
@@ -166,12 +222,16 @@ class HSStage:
 
     def __getattr__(self, item) -> HSObjectRef:
         if self._objects is not None:
-            return HSObjectRef(self._objects, item)
+            return HSObjectRef(self._objects, item, self)
         else:
             return self.__dict__[item]
 
     def get_objects(self) -> list[HSObject]:
         return [obj for obj in self._objects.values()]
+
+    @staticmethod
+    def set_loaded():
+        HSStage.objects_loaded = True
 
     @property
     def width(self): return self._width  # Never changes throughout project
@@ -193,5 +253,7 @@ class HSStage:
     def total_objects(self): return stage_trait_total_objects()
 
 
+
 print('hmm')
 stage = HSStage()
+self = HSSelfObjectRef(stage)

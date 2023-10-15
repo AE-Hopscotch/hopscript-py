@@ -1,4 +1,5 @@
 import abc
+import json
 
 
 class HSDatum(abc.ABC):
@@ -41,7 +42,7 @@ class HSDatum(abc.ABC):
     def __rpow__(self, other) -> 'Operator': return math_power(other, self)
     def __round__(self, n = None) -> 'Operator': return math_round(self)
     def __floor__(self) -> 'Operator': return math_floor(self)
-    def __ceil__(self) -> 'Operator': return math_ceiling(self)
+    def __ceil__(self) -> 'Operator': return math_ceil(self)
     def __abs__(self) -> 'Operator': return math_abs(self)
     def __mod__(self, other) -> 'Operator': return math_modulo(self, other)
     def __rmod__(self, other) -> 'Operator': return math_modulo(other, self)
@@ -87,9 +88,13 @@ class Parameter:
         if type(data).__name__ in ('Operator', 'HSVariable', 'HSTrait'):
             return Parameter.from_operator(data)
 
-        if type(data).__name__ == 'HSObjectRef':
+        if type(data).__name__ in ('HSObjectRef', 'HSSelfObjectRef'):
             return Parameter.from_primitive('test')
 
+        if type(data) == DatumResolvable:
+            return Parameter.from_raw(data.json()) if data.ready else data
+
+        print(data)
         raise BadParameterDataError('Invalid Parameter Data')
 
     @classmethod
@@ -108,8 +113,35 @@ class Parameter:
             "key": self._key,
             "type": self._type
         }
-        if self._datum: content['datum'] = self._datum.json()
+        if type(self._datum) == DatumResolvable:
+            self._datum = self._datum.json()  # needs to resolve twice
+        if self._datum:
+            content['datum'] = self._datum.json()
         return content
+
+
+class DatumResolvable(HSDatum):
+    def __init__(self, stage, resolver: callable, *args):
+        self._resolver = resolver
+        self._args = args
+        self._stage = stage
+
+    def json(self) -> dict:
+        return self._resolver(*self._args)
+
+    @property
+    def ready(self):
+        return self._stage.objects_loaded
+
+
+class StringResolvable:
+    def __init__(self, stage, resolver: callable, *args):
+        self._resolver = resolver
+        self._args = args
+        self._stage = stage
+
+    def json(self):
+        return self._resolver(*self._args)
 
 
 class Operator(HSDatum):
@@ -146,11 +178,6 @@ def generate_operator(block_id: int, name: str, cls: str, parameters: list[any] 
 
 class BadParameterDataError(ValueError):
     pass
-
-
-# Since our magic functions take care of floor and ceil, hoist them to global scope
-# This will make it consistent with other HS operators
-from math import floor, ceil
 
 
 def _random():
