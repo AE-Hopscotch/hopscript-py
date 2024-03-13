@@ -1,8 +1,10 @@
-from builder import *
+import builder
+from builder import HSObject
 from builder.util import BadObjectDataError
 from pathlib import Path
 from builder.stage import stage
 import importlib.util
+import abilities
 
 
 def print_format(fmt, text: str):
@@ -44,6 +46,13 @@ def build_stage() -> dict:
         'variables': [],
         'stageSize': {'width': stage.width, 'height': stage.height}
     }
+
+    # Build Abilities
+    project_abilities = [a for a in dir(abilities) if a not in dir(builder)
+                         and getattr(abilities, a).__module__ == 'abilities']
+    print('abilities', project_abilities)
+
+    # Build Scenes
     for scene in [path for path in Path('scenes').iterdir() if path.is_dir()]:
         scene_name = str(scene).replace('scenes/', '')
         scene_json = {'name': scene_name, 'filename': '', 'objects': []}

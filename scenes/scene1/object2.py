@@ -1,4 +1,5 @@
 from builder import *
+from abilities import *
 
 
 class Object(HSObject):
@@ -19,6 +20,10 @@ class Object(HSObject):
 
         with repeat_forever():
             set_position(stage.last_touch_x, stage.last_touch_y)
+
+    @HSRule.game_starts
+    def game_start_2(self):
+        change_color(30)
 
     # @HSRule.custom_rule('Name', 1, 2, 3)
     # def custom_rule(self): pass

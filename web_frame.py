@@ -8,7 +8,7 @@ def show_web_view(data = None):
         req = urllib.request.urlopen('https://c.gethopscotch.com/api/v1/projects/test')
         project = req.read().decode('UTF-8')
         w.evaluate_js(f'localStorage.projectFromStorage = JSON.stringify({data or project})')
-        w.evaluate_js('setTimeout(() => location.reload(), 5)')
+        w.evaluate_js('setTimeout(() => location.reload(), 1000)')
         w.evaluate_js('document.body.onclick = () => location.reload()')
         w.set_title('Untitled Project')
 
